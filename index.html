@@ -23,7 +23,7 @@
 
   <!-- HJSON -->
   <script src="hjson.js"></script>
-  <!-- <scrip src="https://unpkg.com/hjson@3.0.0/lib/hjson.js" /> -->
+  <script src="json-schema-faker.js"></script>
 
   <style>
     html { height: 100%; }
@@ -55,14 +55,41 @@
       background-color: #263238;
     }
     #firepad {
-      position: absolute; left: 180px; top: 40px; bottom: 0; right: 0; height: auto; width: calc(50% - 90px);
+      position: absolute; left: 180px; top: 40px; bottom: 0; right: 0; height: auto; width: calc(35% - 60px);
     }
     #purejson {
-      position: absolute; left: calc(90px + 50%); top: 40px; bottom: 40px; right: 0; height: calc(100% - 80px); width: calc(50% - 90px);
+      position: absolute; left: calc(120px + 35%); top: 40px; bottom: 40px; right: 0; height: calc(100% - 80px); width: calc(35% - 60px);
     }
-    #control {
-      position: absolute; left: calc(90px + 50%); top: calc(100% - 40px); bottom: 0; right: 0; height: 40px; width: calc(50% - 90px);
+    #samplepayload {
+      position: absolute;
+      left: calc(60px + 70%);
+      top: 40px;
+      bottom: 40px;
+      right: 0;
+      height: calc(100% - 80px);
+      width: calc(30% - 60px);
+    }
+    #maincontrol {
+      position: absolute;
+      left: calc(120px + 35%);
+      top: calc(100% - 40px);
+      bottom: 0;
+      right: 0;
+      height: 30px;
+      width: calc(35% - 60px);
       text-align: center;
+      padding-top: 10px;
+    }
+    #samplecontrol {
+      position: absolute;
+      left: calc(60px + 70%);
+      top: calc(100% - 40px);
+      bottom: 0;
+      right: 0;
+      height: 30px;
+      width: calc(30% - 60px);
+      text-align: center;
+      padding-top: 10px;
     }
     .powered-by-firepad {
       display: none;
@@ -74,13 +101,18 @@
 </head>
 
 <body onload="init()">
+  
+  
   <div id="title"><span style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;">YACJE</span></div>
   <div id="userlist"></div>
   <div id="filename"><input id="filenamevalue" type="text" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="Enter file name or description"></input></div>
   <div id="firepad"></div>
   <div id="purejson"></div>
-  <div id="control"><input id="save" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="SAVE"></input></div>
-
+  <div id="samplepayload"></div>
+  <div id="maincontrol"><input id="save" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="SAVE JSON SCHEMA"></input></div>
+  <div id="samplecontrol"><input id="generatesample" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="GENERATE SAMPLE">&nbsp;<input id="savesample" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="SAVE SAMPLE"></input></div>
+  
+  
   <script>
 
     var welcomeTxt = `{
@@ -151,7 +183,14 @@
         mode: 'javascript',
         theme: 'material'
       });
-      var codeMirrorRight = CodeMirror(document.getElementById('purejson'), {
+      var codeMirrorMiddle = CodeMirror(document.getElementById('purejson'), {
+        lineWrapping: true,
+        lineNumbers: true,
+        mode: 'javascript',
+        theme: 'material'
+      });
+      codeMirrorMiddle.setSize("100%", "100%");
+      var codeMirrorRight = CodeMirror(document.getElementById('samplepayload'), {
         lineWrapping: true,
         lineNumbers: true,
         mode: 'javascript',
@@ -185,7 +224,7 @@
 
       //// Local changes
       firepad.on('synced', function(synced) {
-        updateJSON(codeMirrorLeft, codeMirrorRight, firepad);
+        updateJSON(codeMirrorLeft, codeMirrorMiddle, firepad);
       });
 
       //// Initialize contents
@@ -193,7 +232,7 @@
         if (firepad.isHistoryEmpty()) {
           firepad.setText(welcomeTxt);
         } else {
-          updateJSON(codeMirrorLeft, codeMirrorRight, firepad);
+          updateJSON(codeMirrorLeft, codeMirrorMiddle, firepad);
         }
 
         filename = firepadRef.child('filename');
@@ -205,7 +244,7 @@
         });
 
         codeMirrorLeft.on('changes', function() { 
-          updateJSON(codeMirrorLeft, codeMirrorRight, firepad);
+          updateJSON(codeMirrorLeft, codeMirrorMiddle, firepad);
         });
 
       });
@@ -221,17 +260,37 @@
         document.getElementById('filenamevalue').classList.add("syntax-error");
       });
 
+      // schema save
       document.getElementById('save').addEventListener("click", (event) => {
         //console.log('save', event);
-        var content = codeMirrorRight.getValue();
-        download(content, document.getElementById('filenamevalue').value, "application/json")
+        var content = codeMirrorMiddle.getValue();
+        download(content, document.getElementById('filenamevalue').value + ".json", "application/json");
       });
 
+      // sample payload mgt
+      JSONSchemaFaker.option({
+        sortProperties: false,
+        minItems: 1,
+        maxItems: 5
+      });
+
+      document.getElementById('generatesample').addEventListener("click", (event) => {
+        var content = codeMirrorMiddle.getValue();
+        //console.log(JSON.parse(content));
+        var sample = JSONSchemaFaker.generate(JSON.parse(content));
+        codeMirrorRight.setValue(JSON.stringify(sample, null, 2));
+      });
+      // sample save
+      document.getElementById('savesample').addEventListener("click", (event) => {
+        //console.log('save', event);
+        var content = codeMirrorRight.getValue();
+        download(content, document.getElementById('filenamevalue').value + "-sample.json", "application/json");
+      });
     }
 
-    function updateJSON(codeMirrorLeft, codeMirrorRight, firepad) {
+    function updateJSON(codeMirrorLeft, codeMirrorMiddle, firepad) {
       try {
-            codeMirrorRight.setValue(JSON.stringify(hjson.parse(firepad.getText()), null, 2));
+            codeMirrorMiddle.setValue(JSON.stringify(hjson.parse(firepad.getText()), null, 2));
             var total_lines = codeMirrorLeft.lineCount();
             for (let index = 0; index < total_lines; index++) {
               codeMirrorLeft.removeLineClass(index, 'gutter');
@@ -283,7 +342,7 @@
   + save button
   + better colours???
   + hjson syntaxt errors
-  - sample generator
+  + sample generator
   - gather source / dependencies
   - documentation
 -->
