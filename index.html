@@ -1,0 +1,287 @@
+<!doctype html>
+<!-- See http://www.firepad.io/docs/ for detailed embedding docs. -->
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/5.5.4/firebase.js"></script>
+  <!-- CodeMirror -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/codemirror.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/mode/javascript/javascript.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/codemirror.css" />
+  <link rel="stylesheet" href="material.css" />
+
+  <!-- Firepad -->
+  <link rel="stylesheet" href="https://firepad.io/releases/v1.5.9/firepad.css" />
+  <script src="https://firepad.io/releases/v1.5.9/firepad.min.js"></script>
+
+  <!-- Include example userlist script / CSS.
+       Can be downloaded from: https://github.com/firebase/firepad/tree/master/examples/ -->
+  <script src="firepad-userlist.js"></script>
+  <link rel="stylesheet" href="firepad-userlist.css" />
+
+  <!-- HJSON -->
+  <script src="hjson.js"></script>
+  <!-- <scrip src="https://unpkg.com/hjson@3.0.0/lib/hjson.js" /> -->
+
+  <style>
+    html { height: 100%; }
+    body { margin: 0; height: 100%; background-color: #263238;}
+    #title {
+      position: absolute; left: 0; top: 0; bottom: 0; height: 30px;
+      width: 180px;
+      text-align: center; margin-top: 10px;
+      background-color: #263238;
+      color: white;
+    }
+    #filename {
+      position: absolute; left: 180px; top: 0; bottom: 0; height: 40px;
+      width: calc(100% - 180px);
+      text-align: center; margin-top: 10px;
+      color: white;
+    }
+    #filenamevalue {
+      width: calc(30%);
+      background-color: #263238;
+      color: white;
+      border: white;
+      border-style: dotted;
+      border-width: 1px;
+    }
+    #userlist {
+      position: absolute; left: 0; top: 30px; bottom: 0; height: auto;
+      width: 180px;
+      background-color: #263238;
+    }
+    #firepad {
+      position: absolute; left: 180px; top: 40px; bottom: 0; right: 0; height: auto; width: calc(50% - 90px);
+    }
+    #purejson {
+      position: absolute; left: calc(90px + 50%); top: 40px; bottom: 40px; right: 0; height: calc(100% - 80px); width: calc(50% - 90px);
+    }
+    #control {
+      position: absolute; left: calc(90px + 50%); top: calc(100% - 40px); bottom: 0; right: 0; height: 40px; width: calc(50% - 90px);
+      text-align: center;
+    }
+    .powered-by-firepad {
+      display: none;
+    }
+    .syntax-error {
+      background-color: rgb(124 63 63) !important;
+    }
+  </style>
+</head>
+
+<body onload="init()">
+  <div id="title"><span style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;">YACJE</span></div>
+  <div id="userlist"></div>
+  <div id="filename"><input id="filenamevalue" type="text" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="Enter file name or description"></input></div>
+  <div id="firepad"></div>
+  <div id="purejson"></div>
+  <div id="control"><input id="save" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="SAVE"></input></div>
+
+  <script>
+
+    var welcomeTxt = `{
+  // Welcome! Yacje (Yet Another Collaborative JSON Editor) allows you to co-author JSON in a simple way.
+
+  // This editor supports Hjson syntax, which makes writing
+  // JSON less plainful. See below for examples. The compiled
+  // JSON code is shown on the right.
+
+  /* The collaborative part can be done by sharing the URL of this page with others.
+     Each can then enter their name, allowing a group of non JSON-fluent people to co-write a perfect JSON! */
+
+  # TL;DR
+
+  human:   Hjson
+  machine: JSON
+
+  // Use #, // or /**/ comments,
+
+  // Omit quotes for keys
+  key: 1
+
+  // Omit quotes for strings
+  contains: everything on this line
+
+  // Omit commas at the end of a line
+  cool: {
+    foo: 1
+    bar: 2
+  }
+
+  // Allow trailing commas
+  list: [
+    1,
+    2,
+  ]
+
+  // And use Python-like multiline strings
+  realist:
+  '''
+  My half empty glass,
+  I will fill your empty half.
+  Now you are half full.
+  '''
+}`
+
+    function init() {
+      //// Initialize Firebase.
+      //// TODO: replace with your Firebase project configuration.
+      var config = {
+        apiKey: 'AIzaSyCGQHiH1Wv9qBd4BMGHF6vPAijfodZl6k0',
+        authDomain: "yacje-a7ffe.firebaseapp.com",
+        projectId: "yacje-a7ffe",
+        messagingSenderId: "154769116413",
+        appId: "1:154769116413:web:2ecc63d38ffd434d278294",
+        measurementId: "G-Q00LBW8GCG",
+        databaseURL: "https://yacje-a7ffe-default-rtdb.firebaseio.com"
+      };
+      firebase.initializeApp(config);
+
+      //// Get Firebase Database reference.
+      var firepadRef = getExampleRef();
+
+      //// Create CodeMirror (with lineWrapping on).
+      var codeMirrorLeft = CodeMirror(document.getElementById('firepad'), {
+        lineWrapping: true,
+        lineNumbers: true,
+        mode: 'javascript',
+        theme: 'material'
+      });
+      var codeMirrorRight = CodeMirror(document.getElementById('purejson'), {
+        lineWrapping: true,
+        lineNumbers: true,
+        mode: 'javascript',
+        theme: 'material'
+      });
+      codeMirrorRight.setSize("100%", "100%");
+
+      // Manage UserID & DisplayName
+      // check is one is there
+      var userId = localStorage.getItem('userId');
+      if (!userId) {
+        // Create a random ID to use as our user ID (we must give this to firepad and FirepadUserList).
+        userId = Math.floor(Math.random() * 9999999999).toString();
+        localStorage.setItem('userId', userId);
+      }
+      // same for display name
+      var displayName = localStorage.getItem('displayName');
+      if (!displayName) {
+        // Create a random ID to use as our user ID (we must give this to firepad and FirepadUserList).
+        displayName = 'SAP Guest ' + Math.floor(Math.random() * 1000);
+        localStorage.setItem('displayName', displayName);
+      }
+
+      //// Create Firepad (with rich text features and our desired userId).
+      var firepad = Firepad.fromCodeMirror(firepadRef, codeMirrorLeft,
+      { userId: userId });
+
+      //// Create FirepadUserList (with our desired userId).
+      var firepadUserList = FirepadUserList.fromDiv(firepadRef.child('users'),
+          document.getElementById('userlist'), userId, displayName);
+
+      //// Local changes
+      firepad.on('synced', function(synced) {
+        updateJSON(codeMirrorLeft, codeMirrorRight, firepad);
+      });
+
+      //// Initialize contents
+      firepad.on('ready', function() {
+        if (firepad.isHistoryEmpty()) {
+          firepad.setText(welcomeTxt);
+        } else {
+          updateJSON(codeMirrorLeft, codeMirrorRight, firepad);
+        }
+
+        filename = firepadRef.child('filename');
+        firepadRef.child('filename').on("value", function(snapshot) {
+          console.log(snapshot.val());
+          document.getElementById('filenamevalue').value = snapshot.val();
+        }, function (error) {
+          console.log("Error: " + error.code);
+        });
+
+        codeMirrorLeft.on('changes', function() { 
+          updateJSON(codeMirrorLeft, codeMirrorRight, firepad);
+        });
+
+      });
+
+      // file name mgt
+      document.getElementById('filenamevalue').addEventListener("change", (event) => {
+        //console.log('change ' + event.target.value);
+        document.getElementById('filenamevalue').classList.remove("syntax-error");
+        firepadRef.child('filename').set(event.target.value);
+      });
+      document.getElementById('filenamevalue').addEventListener("input", (event) => {
+        //console.log('input ' + event.target.value);
+        document.getElementById('filenamevalue').classList.add("syntax-error");
+      });
+
+      document.getElementById('save').addEventListener("click", (event) => {
+        //console.log('save', event);
+        var content = codeMirrorRight.getValue();
+        download(content, document.getElementById('filenamevalue').value, "application/json")
+      });
+
+    }
+
+    function updateJSON(codeMirrorLeft, codeMirrorRight, firepad) {
+      try {
+            codeMirrorRight.setValue(JSON.stringify(hjson.parse(firepad.getText()), null, 2));
+            var total_lines = codeMirrorLeft.lineCount();
+            for (let index = 0; index < total_lines; index++) {
+              codeMirrorLeft.removeLineClass(index, 'gutter');
+            }
+          } catch (error) {
+            msg = error.message;
+            var line = msg.substring(
+              msg.indexOf("at line ") + 8, 
+              msg.lastIndexOf(",")
+            );
+            linenb = parseInt(line) - 2;
+            codeMirrorLeft.addLineClass(linenb, 'gutter', 'syntax-error');
+          }
+    }
+
+    function download(content, fileName, contentType) {
+      var a = document.createElement("a");
+      var file = new Blob([content], {type: contentType});
+      a.href = URL.createObjectURL(file);
+      a.download = fileName;
+      a.click();
+    }
+
+    // Helper to get hash from end of URL or generate a random one.
+    function getExampleRef() {
+      var ref = firebase.database().ref();
+      var hash = window.location.hash.replace(/#/g, '');
+      if (hash) {
+        ref = ref.child(hash);
+      } else {
+        ref = ref.push(); // generate unique location.
+        window.location = window.location + '#' + ref.key; // add it as a hash to the URL.
+      }
+      if (typeof console !== 'undefined') {
+        console.log('Firebase data: ', ref.toString());
+      }
+      return ref;
+    }
+  </script>
+</body>
+</html>
+<!--
+  TODO:
+  + file name / desc
+  + save users between sessions? (where are they stored??) 
+  - dockerise
+  - expose to outside world on yacje.alepape.com
+  - code folding (https://codemirror.net/5/addon/fold/foldcode.js)
+  + save button
+  + better colours???
+  + hjson syntaxt errors
+  - sample generator
+-->
