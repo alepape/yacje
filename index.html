@@ -4,6 +4,7 @@
 
 <head>
   <meta charset="utf-8" />
+  <meta title="YACJE" />
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/5.5.4/firebase.js"></script>
   <!-- CodeMirror -->
@@ -254,6 +255,7 @@
         //console.log('change ' + event.target.value);
         document.getElementById('filenamevalue').classList.remove("syntax-error");
         firepadRef.child('filename').set(event.target.value);
+        document.title = "YACJE - " + event.target.value;
       });
       document.getElementById('filenamevalue').addEventListener("input", (event) => {
         //console.log('input ' + event.target.value);
