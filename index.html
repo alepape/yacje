@@ -269,16 +269,20 @@
 
       // sample payload mgt
       JSONSchemaFaker.option({
-        sortProperties: false,
-        minItems: 1,
-        maxItems: 5
+        sortProperties: false
+        //minItems: 1,
+        //maxItems: 5
       });
 
       document.getElementById('generatesample').addEventListener("click", (event) => {
         var content = codeMirrorMiddle.getValue();
         //console.log(JSON.parse(content));
-        var sample = JSONSchemaFaker.generate(JSON.parse(content));
-        codeMirrorRight.setValue(JSON.stringify(sample, null, 2));
+        try {
+          var sample = JSONSchemaFaker.generate(JSON.parse(content));
+          codeMirrorRight.setValue(JSON.stringify(sample, null, 2));        
+        } catch (error) {
+          codeMirrorRight.setValue("Schema Validation failed\n" + error);
+        }
       });
       // sample save
       document.getElementById('savesample').addEventListener("click", (event) => {
@@ -336,7 +340,7 @@
   TODO:
   + file name / desc
   + save users between sessions
-  - dockerise
+  + dockerise
   - expose to outside world
   - code folding (https://codemirror.net/5/addon/fold/foldcode.js)
   + save button
