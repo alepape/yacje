@@ -98,6 +98,33 @@
     .syntax-error {
       background-color: rgb(124 63 63) !important;
     }
+
+    input.firepad-userlist-name-input {
+        font-family: 'Trebuchet MS';
+        border: none;
+        background-color: #658493;
+    }
+
+    /* width */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    /* Track */
+    ::-webkit-scrollbar-track {
+      background: #182024;
+    }
+
+    /* Handle */
+    ::-webkit-scrollbar-thumb {
+      background: #394a53;
+    }
+
+    /* Handle on hover */
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4c636f;
+    }
+
   </style>
 </head>
 
@@ -240,6 +267,7 @@
         firepadRef.child('filename').on("value", function(snapshot) {
           console.log(snapshot.val());
           document.getElementById('filenamevalue').value = snapshot.val();
+          document.title = "YACJE - " + document.getElementById('filenamevalue').value;
         }, function (error) {
           console.log("Error: " + error.code);
         });
