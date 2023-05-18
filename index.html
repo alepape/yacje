@@ -189,16 +189,28 @@
 
     function init() {
       //// Initialize Firebase.
-      //// TODO: replace with your Firebase project configuration.
-      var config = {
-        apiKey: 'AIzaSyCGQHiH1Wv9qBd4BMGHF6vPAijfodZl6k0',
-        authDomain: "yacje-a7ffe.firebaseapp.com",
-        projectId: "yacje-a7ffe",
-        messagingSenderId: "154769116413",
-        appId: "1:154769116413:web:2ecc63d38ffd434d278294",
-        measurementId: "G-Q00LBW8GCG",
-        databaseURL: "https://yacje-a7ffe-default-rtdb.firebaseio.com"
-      };
+      //// load local config
+      fetch('./config.json').then(response => {
+        return response.json();
+      }).then(data => {
+        // Work with JSON data here
+        console.log("configuration", data);
+        launchApp(data);
+      }).catch(err => {
+        console.log(err);
+      });
+    }
+
+    function launchApp(config) {
+      // var config = {
+      //   apiKey: 'AIzaSyCGQHiH1Wv9qBd4BMGHF6vPAijfodZl6k0',
+      //   authDomain: "yacje-a7ffe.firebaseapp.com",
+      //   projectId: "yacje-a7ffe",
+      //   messagingSenderId: "154769116413",
+      //   appId: "1:154769116413:web:2ecc63d38ffd434d278294",
+      //   measurementId: "G-Q00LBW8GCG",
+      //   databaseURL: "https://yacje-a7ffe-default-rtdb.firebaseio.com"
+      // };
       firebase.initializeApp(config);
 
       //// Get Firebase Database reference.
@@ -368,15 +380,10 @@
 </html>
 <!--
   TODO:
-  + file name / desc
-  + save users between sessions
-  + dockerise
-  - expose to outside world
   - code folding (https://codemirror.net/5/addon/fold/foldcode.js)
-  + save button
-  + better colours???
-  + hjson syntaxt errors
-  + sample generator
   - gather source / dependencies
   - documentation
+  - separate the firebase configuration from the html and add into the container config instead
+    https://levelup.gitconnected.com/using-docker-environment-variables-at-javascript-runtime-cd6d77822608
+  - secure firebase access (now open for 30 days)
 -->
