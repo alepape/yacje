@@ -10,7 +10,12 @@
   <!-- CodeMirror -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/codemirror.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/mode/javascript/javascript.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/addon/fold/foldcode.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/addon/fold/foldgutter.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/addon/fold/comment-fold.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/addon/fold/brace-fold.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/codemirror.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.17.0/addon/fold/foldgutter.css" />
   <link rel="stylesheet" href="material.css" />
 
   <!-- Firepad -->
@@ -56,19 +61,41 @@
       background-color: #263238;
     }
     #firepad {
-      position: absolute; left: 180px; top: 40px; bottom: 0; right: 0; height: auto; width: calc(35% - 60px);
+      position: absolute; 
+      left: 180px; 
+      top: 40px; 
+      bottom: 0; 
+      /* right: 0;  */
+      height: auto; 
+      width: calc(35% - 60px);
+    }
+    #firepad.focusmode {
+      width: calc(50% - 90px);
     }
     #purejson {
-      position: absolute; left: calc(120px + 35%); top: 40px; bottom: 40px; right: 0; height: calc(100% - 80px); width: calc(35% - 60px);
+      position: absolute; 
+      left: calc(120px + 35%); 
+      top: 40px; 
+      bottom: 40px; 
+      /* right: 0;  */
+      height: calc(100% - 80px); 
+      width: calc(35% - 60px);
+    }
+    #purejson.focusmode {
+      left: calc(90px + 50%);
+      width: calc(50% - 90px);
     }
     #samplepayload {
       position: absolute;
       left: calc(60px + 70%);
       top: 40px;
       bottom: 40px;
-      right: 0;
+      /* right: 0; */
       height: calc(100% - 80px);
       width: calc(30% - 60px);
+    }
+    #samplepayload.focusmode {
+      display: none;
     }
     #maincontrol {
       position: absolute;
@@ -81,6 +108,10 @@
       text-align: center;
       padding-top: 10px;
     }
+    #maincontrol.focusmode {
+      left: calc(90px + 50%);
+      width: calc(50% - 90px);
+    }
     #samplecontrol {
       position: absolute;
       left: calc(60px + 70%);
@@ -92,6 +123,15 @@
       text-align: center;
       padding-top: 10px;
     }
+    #samplecontrol.focusmode {
+      display: none;
+    }
+
+    #focuson { display:unset; }
+    #focuson.focusmode { display:none; }
+    #focusoff { display:none; }
+    #focusoff.focusmode { display:unset; }
+
     .powered-by-firepad {
       display: none;
     }
@@ -137,9 +177,9 @@
   <div id="firepad"></div>
   <div id="purejson"></div>
   <div id="samplepayload"></div>
-  <div id="maincontrol"><input id="save" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="SAVE JSON SCHEMA"></input></div>
+  <div id="maincontrol"><input id="save" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="SAVE"></input></div>
   <div id="samplecontrol"><input id="generatesample" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="GENERATE SAMPLE">&nbsp;<input id="savesample" class="material" type="button" style="font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;" value="SAVE SAMPLE"></input></div>
-  
+  <div id="focus" style="position: absolute;right: 0;"><button id="focusoff" title="Show Sample Generator"><<</button><button id="focuson" title="Hide Sample Generator">>></button></div>
   
   <script>
 
@@ -211,12 +251,16 @@
       var codeMirrorLeft = CodeMirror(document.getElementById('firepad'), {
         lineWrapping: true,
         lineNumbers: true,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
         mode: 'javascript',
         theme: 'material'
       });
       var codeMirrorMiddle = CodeMirror(document.getElementById('purejson'), {
         lineWrapping: true,
         lineNumbers: true,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
         mode: 'javascript',
         theme: 'material'
       });
@@ -224,6 +268,8 @@
       var codeMirrorRight = CodeMirror(document.getElementById('samplepayload'), {
         lineWrapping: true,
         lineNumbers: true,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
         mode: 'javascript',
         theme: 'material'
       });
@@ -323,6 +369,19 @@
         var content = codeMirrorRight.getValue();
         download(content, document.getElementById('filenamevalue').value + "-sample.json", "application/json");
       });
+
+      // focus mode mgt
+      document.getElementById('focuson').addEventListener("click", (event) => {
+        console.log("focus on");
+        focusmode(true);
+      });
+      // sample save
+      document.getElementById('focusoff').addEventListener("click", (event) => {
+        console.log("focus off");
+        focusmode(false);
+      });
+      
+
     }
 
     function updateJSON(codeMirrorLeft, codeMirrorMiddle, firepad) {
@@ -351,6 +410,26 @@
       a.click();
     }
 
+    function focusmode(focus) {
+      if (focus) {
+        document.getElementById('firepad').classList.add("focusmode"); 
+        document.getElementById('purejson').classList.add("focusmode"); 
+        document.getElementById('samplepayload').classList.add("focusmode"); 
+        document.getElementById('maincontrol').classList.add("focusmode"); 
+        document.getElementById('samplecontrol').classList.add("focusmode"); 
+        document.getElementById('focuson').classList.add("focusmode"); 
+        document.getElementById('focusoff').classList.add("focusmode"); 
+      } else {
+        document.getElementById('firepad').classList.remove("focusmode"); 
+        document.getElementById('purejson').classList.remove("focusmode"); 
+        document.getElementById('samplepayload').classList.remove("focusmode"); 
+        document.getElementById('maincontrol').classList.remove("focusmode"); 
+        document.getElementById('samplecontrol').classList.remove("focusmode"); 
+        document.getElementById('focuson').classList.remove("focusmode"); 
+        document.getElementById('focusoff').classList.remove("focusmode"); 
+      }
+    }
+
     // Helper to get hash from end of URL or generate a random one.
     function getExampleRef() {
       var ref = firebase.database().ref();
@@ -371,7 +450,6 @@
 </html>
 <!--
   TODO:
-  - code folding (https://codemirror.net/5/addon/fold/foldcode.js)
   - gather precise source / dependencies
   - better documentation
 -->
